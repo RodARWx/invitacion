@@ -323,10 +323,13 @@
       position: absolute;
       inset: 0;
       opacity: 0;
-      transform: scale(1.04);
-      transition: opacity 1s ease, transform 1.2s ease;
+      transform: scale(1.02);
+      transition:
+        opacity 1.8s cubic-bezier(0.45, 0.05, 0.25, 1),
+        transform 1.8s cubic-bezier(0.45, 0.05, 0.25, 1);
       pointer-events: none;
       z-index: 1;
+      will-change: opacity, transform;
     }
 
     .carousel-slide.active {
@@ -336,10 +339,16 @@
     }
 
     .carousel-slide.peek {
-      opacity: 0.28;
-      transform: scale(0.97) translateX(4%);
+      opacity: 0.22;
+      transform: scale(1);
       z-index: 2;
-      filter: blur(0.3px);
+      filter: none;
+    }
+
+    .carousel-slide.leaving {
+      opacity: 0;
+      transform: scale(0.98);
+      z-index: 2;
     }
 
     .carousel-slide img {
@@ -418,6 +427,10 @@
       z-index: 220;
       text-align: center;
       pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
     }
 
     .success-content h2 {
@@ -444,6 +457,75 @@
     @keyframes fadeInSub {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 0.85; transform: translateY(0); }
+    }
+
+    /* Carrusel miniatura — pantalla final */
+    .mini-carousel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      margin-top: 1.75rem;
+      width: min(94vw, 340px);
+      opacity: 0;
+      animation: fadeInSub 1s cubic-bezier(0.45, 0.05, 0.25, 1) 0.85s forwards;
+    }
+
+    .mini-panel {
+      border-radius: 0.85rem;
+      overflow: hidden;
+      border: 2px solid #f9b8cc;
+      background: rgba(255, 245, 247, 0.75);
+      padding: 0;
+      transition:
+        transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1),
+        border-color 0.35s ease,
+        box-shadow 0.35s ease,
+        opacity 0.35s ease;
+    }
+
+    .mini-panel img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.55s cubic-bezier(0.45, 0.05, 0.25, 1);
+    }
+
+    .mini-prev,
+    .mini-next {
+      width: 24%;
+      aspect-ratio: 3 / 4;
+      cursor: pointer;
+      opacity: 0.7;
+      box-shadow: 0 4px 14px rgba(224, 122, 154, 0.12);
+    }
+
+    .mini-prev:hover,
+    .mini-next:hover {
+      transform: scale(1.05);
+      border-color: #f093b0;
+      opacity: 0.95;
+      box-shadow: 0 6px 20px rgba(224, 122, 154, 0.22);
+    }
+
+    .mini-prev:active,
+    .mini-next:active {
+      transform: scale(0.97);
+    }
+
+    .mini-center {
+      width: 46%;
+      aspect-ratio: 4 / 5;
+      border-width: 3px;
+      border-color: #f093b0;
+      box-shadow: 0 10px 32px rgba(224, 122, 154, 0.28);
+      pointer-events: none;
+      background: linear-gradient(135deg, #fff5f7, #ffe8ee);
+    }
+
+    .mini-center img.fading {
+      opacity: 0.15;
     }
   </style>
 </head>
@@ -584,6 +666,18 @@
     <div class="success-content">
       <h2>¡Yeeeeei!</h2>
       <p class="success-subtitle">Te veo allá</p>
+
+      <div class="mini-carousel" id="mini-carousel" aria-label="Galería de fotos">
+        <button type="button" class="mini-panel mini-prev" id="mini-prev" aria-label="Foto anterior">
+          <img id="mini-img-prev" alt="Anterior" loading="lazy">
+        </button>
+        <div class="mini-panel mini-center">
+          <img id="mini-img-center" alt="Foto actual" loading="eager">
+        </div>
+        <button type="button" class="mini-panel mini-next" id="mini-next" aria-label="Foto siguiente">
+          <img id="mini-img-next" alt="Siguiente" loading="lazy">
+        </button>
+      </div>
     </div>
   </section>
 
@@ -601,8 +695,9 @@
       './imagenes/5.jpeg',
     ];
     const VOLUME_NOTICE_MS = 5000;
-    const SLIDE_DURATION_MS = 3500;
-    const FADE_DURATION_MS = 1000;
+    const SLIDE_DURATION_MS = 5000;
+    const CROSSFADE_MS = 1800;
+    const MINI_AUTO_MS = 4500;
 
     const welcomeScreen = document.getElementById('welcome-screen');
     const carouselScreen = document.getElementById('carousel-screen');
@@ -614,6 +709,11 @@
     const carouselInner = document.getElementById('carousel-inner');
     const carouselCounter = document.getElementById('carousel-counter');
     const btnCarouselContinuar = document.getElementById('btn-carousel-continuar');
+    const miniPrev = document.getElementById('mini-prev');
+    const miniNext = document.getElementById('mini-next');
+    const miniImgCenter = document.getElementById('mini-img-center');
+    const miniImgPrev = document.getElementById('mini-img-prev');
+    const miniImgNext = document.getElementById('mini-img-next');
     const btnAcepto = document.getElementById('btn-acepto');
     const btnNoAcepto = document.getElementById('btn-no-acepto');
     const declineHint = document.getElementById('decline-hint');
@@ -631,6 +731,12 @@
     let rainMode = 'carousel';
     let carouselCurrent = 0;
     let carouselSlides = [];
+    let miniIndex = 0;
+    let miniAutoTimer = null;
+
+    function modIndex(index, length) {
+      return ((index % length) + length) % length;
+    }
 
     function animateButton(btn, className = 'btn-animate') {
       btn.classList.remove(className);
@@ -695,14 +801,19 @@
       carouselSlides = carouselInner.querySelectorAll('.carousel-slide');
     }
 
-    function updateCarouselView() {
+    function updateCarouselView(prevIndex) {
       const total = carouselSlides.length;
-      const nextIdx = (carouselCurrent + 1) % total;
+      const nextIdx = modIndex(carouselCurrent + 1, total);
 
       carouselSlides.forEach((slide, i) => {
-        slide.classList.remove('active', 'peek');
-        if (i === carouselCurrent) slide.classList.add('active');
-        else if (i === nextIdx) slide.classList.add('peek');
+        slide.classList.remove('active', 'peek', 'leaving');
+        if (i === carouselCurrent) {
+          slide.classList.add('active');
+        } else if (i === nextIdx) {
+          slide.classList.add('peek');
+        } else if (i === prevIndex) {
+          slide.classList.add('leaving');
+        }
       });
 
       carouselCounter.textContent = `${carouselCurrent + 1} / ${total}`;
@@ -711,7 +822,7 @@
     function startCarousel() {
       buildCarouselSlides();
       carouselCurrent = 0;
-      updateCarouselView();
+      updateCarouselView(0);
       btnCarouselContinuar.classList.remove('visible');
 
       setTimeout(() => {
@@ -719,13 +830,73 @@
       }, SLIDE_DURATION_MS * 2);
 
       function advanceSlide() {
-        carouselCurrent = (carouselCurrent + 1) % carouselSlides.length;
-        updateCarouselView();
+        const prevIndex = carouselCurrent;
+        carouselCurrent = modIndex(carouselCurrent + 1, carouselSlides.length);
+        updateCarouselView(prevIndex);
         carouselTimer = setTimeout(advanceSlide, SLIDE_DURATION_MS);
       }
 
       carouselTimer = setTimeout(advanceSlide, SLIDE_DURATION_MS);
     }
+
+    // ── Carrusel miniatura (pantalla final) ──
+    function setMiniImage(imgEl, src) {
+      imgEl.src = src;
+      imgEl.onerror = () => {
+        const altExts = ['.jpg', '.png', '.webp'];
+        const base = src.replace(/\.(jpg|jpeg|png|webp)$/i, '');
+        const tryIdx = Number(imgEl.dataset.try || 0);
+        if (tryIdx < altExts.length) {
+          imgEl.dataset.try = String(tryIdx + 1);
+          imgEl.src = base + altExts[tryIdx];
+        }
+      };
+    }
+
+    function updateMiniCarousel(animateCenter = true) {
+      const len = CAROUSEL_IMAGES.length;
+      const prev = modIndex(miniIndex - 1, len);
+      const next = modIndex(miniIndex + 1, len);
+
+      setMiniImage(miniImgPrev, CAROUSEL_IMAGES[prev]);
+      setMiniImage(miniImgNext, CAROUSEL_IMAGES[next]);
+
+      if (animateCenter) {
+        miniImgCenter.classList.add('fading');
+        setTimeout(() => {
+          setMiniImage(miniImgCenter, CAROUSEL_IMAGES[miniIndex]);
+          miniImgCenter.classList.remove('fading');
+        }, CROSSFADE_MS * 0.35);
+      } else {
+        setMiniImage(miniImgCenter, CAROUSEL_IMAGES[miniIndex]);
+      }
+    }
+
+    function resetMiniAuto() {
+      if (miniAutoTimer) clearInterval(miniAutoTimer);
+      miniAutoTimer = setInterval(() => {
+        miniIndex = modIndex(miniIndex + 1, CAROUSEL_IMAGES.length);
+        updateMiniCarousel(true);
+      }, MINI_AUTO_MS);
+    }
+
+    function startMiniCarousel() {
+      miniIndex = 0;
+      updateMiniCarousel(false);
+      resetMiniAuto();
+    }
+
+    miniPrev.addEventListener('click', () => {
+      miniIndex = modIndex(miniIndex - 1, CAROUSEL_IMAGES.length);
+      updateMiniCarousel(true);
+      resetMiniAuto();
+    });
+
+    miniNext.addEventListener('click', () => {
+      miniIndex = modIndex(miniIndex + 1, CAROUSEL_IMAGES.length);
+      updateMiniCarousel(true);
+      resetMiniAuto();
+    });
 
     btnCarouselContinuar.addEventListener('click', () => {
       animateButton(btnCarouselContinuar);
@@ -763,6 +934,7 @@
 
       successScreen.classList.remove('hidden-screen');
       setRainMode('success');
+      startMiniCarousel();
     });
 
     // ── Lluvia infinita de flores ──
