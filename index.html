@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Una invitación especial</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            lora: ['Lora', 'serif'],
+            montserrat: ['Montserrat', 'sans-serif'],
+          },
+          colors: {
+            blush: {
+              50: '#fff5f7',
+              100: '#ffe8ee',
+              200: '#ffd6e3',
+              300: '#f9b8cc',
+              400: '#f093b0',
+              500: '#e07a9a',
+            },
+            rosewater: {
+              50: '#fdf2f6',
+              100: '#fae8ef',
+              200: '#f5d5e2',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(160deg, #fff5f7 0%, #fae8ef 40%, #f5d5e2 100%);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    .font-lora { font-family: 'Lora', serif; }
+
+    /* Tulip background decorations */
+    .tulip-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .tulip-bg svg {
+      position: absolute;
+      opacity: 0.12;
+    }
+
+    .tulip-1 { top: 5%; left: 3%; width: 90px; transform: rotate(-15deg); }
+    .tulip-2 { top: 12%; right: 5%; width: 70px; transform: rotate(20deg); }
+    .tulip-3 { bottom: 15%; left: 8%; width: 100px; transform: rotate(10deg); }
+    .tulip-4 { bottom: 8%; right: 10%; width: 80px; transform: rotate(-25deg); }
+    .tulip-5 { top: 45%; left: -2%; width: 60px; transform: rotate(5deg); opacity: 0.08; }
+    .tulip-6 { top: 35%; right: 2%; width: 75px; transform: rotate(-10deg); opacity: 0.08; }
+    .tulip-7 { bottom: 40%; right: 15%; width: 55px; transform: rotate(18deg); opacity: 0.1; }
+    .tulip-8 { top: 70%; left: 20%; width: 65px; transform: rotate(-8deg); opacity: 0.09; }
+
+    /* Screen transitions */
+    .screen {
+      position: relative;
+      z-index: 10;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .screen.hidden-screen {
+      display: none;
+    }
+
+    .screen.fade-out {
+      opacity: 0;
+      transform: translateY(-20px);
+      pointer-events: none;
+    }
+
+    .screen.fade-in {
+      animation: fadeInUp 0.9s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Buttons */
+    .btn-soft {
+      background: linear-gradient(135deg, #f9b8cc 0%, #f093b0 100%);
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      padding: 0.875rem 2.5rem;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      font-size: 1rem;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(224, 122, 154, 0.25);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .btn-soft:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(224, 122, 154, 0.35);
+    }
+
+    .btn-soft:active {
+      transform: translateY(0);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #e07a9a;
+      border: 2px solid #f9b8cc;
+      border-radius: 9999px;
+      padding: 0.75rem 2rem;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline:hover {
+      background: rgba(249, 184, 204, 0.15);
+      border-color: #f093b0;
+    }
+
+    /* Photo frame */
+    .photo-frame {
+      position: relative;
+      border-radius: 1.25rem;
+      padding: 6px;
+      background: linear-gradient(135deg, #f9b8cc, #ffd6e3, #f093b0, #ffd6e3);
+      box-shadow: 0 8px 32px rgba(224, 122, 154, 0.18);
+      max-width: 100%;
+      width: 100%;
+    }
+
+    .photo-frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 1rem;
+      object-fit: cover;
+      aspect-ratio: 16 / 10;
+      max-height: 280px;
+    }
+
+    @media (min-width: 640px) {
+      .photo-frame img {
+        max-height: 340px;
+        aspect-ratio: 16 / 9;
+      }
+    }
+
+    /* Confetti canvas */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* Success message */
+    .success-message {
+      animation: successPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes successPop {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Gentle pulse on welcome quote */
+    .quote-glow {
+      animation: gentleGlow 4s ease-in-out infinite;
+    }
+
+    @keyframes gentleGlow {
+      0%, 100% { text-shadow: 0 0 20px rgba(249, 184, 204, 0.2); }
+      50% { text-shadow: 0 0 40px rgba(249, 184, 204, 0.4); }
+    }
+
+    /* Decline gentle shake */
+    @keyframes gentleShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    .shake { animation: gentleShake 0.5s ease; }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+    }
+
+    .detail-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      width: 1.75rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tulip background SVGs -->
+  <div class="tulip-bg" aria-hidden="true">
+    <svg class="tulip-1" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#f093b0"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#7cb87c" stroke-width="2" fill="none"/>
+      <path d="M30 70 C25 68, 20 72, 22 75" stroke="#7cb87c" stroke-width="1.5" fill="none"/>
+    </svg>
+    <svg class="tulip-2" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#e07a9a"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#6aaa6a" stroke-width="2" fill="none"/>
+    </svg>
+    <svg class="tulip-3" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#f9b8cc"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#7cb87c" stroke-width="2" fill="none"/>
+      <path d="M30 72 C35 70, 40 74, 38 77" stroke="#7cb87c" stroke-width="1.5" fill="none"/>
+    </svg>
+    <svg class="tulip-4" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#f093b0"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#6aaa6a" stroke-width="2" fill="none"/>
+    </svg>
+    <svg class="tulip-5" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#ffd6e3"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#7cb87c" stroke-width="2" fill="none"/>
+    </svg>
+    <svg class="tulip-6" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#e07a9a"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#7cb87c" stroke-width="2" fill="none"/>
+    </svg>
+    <svg class="tulip-7" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#f9b8cc"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#6aaa6a" stroke-width="2" fill="none"/>
+    </svg>
+    <svg class="tulip-8" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 35 C20 20, 10 25, 15 40 C18 50, 25 55, 30 60 C35 55, 42 50, 45 40 C50 25, 40 20, 30 35Z" fill="#f093b0"/>
+      <path d="M28 60 L30 85 L32 60" stroke="#7cb87c" stroke-width="2" fill="none"/>
+    </svg>
+  </div>
+
+  <!-- STATE 1: Welcome -->
+  <section id="welcome-screen" class="screen">
+    <div class="text-center max-w-lg mx-auto">
+      <p class="font-lora text-2xl sm:text-3xl md:text-4xl text-blush-500 italic leading-relaxed quote-glow px-2">
+        ¿Quién quisiera a otra teniendo tus ojos?
+      </p>
+      <div class="mt-10 sm:mt-12">
+        <button id="btn-continuar" class="btn-soft" type="button">
+          Continuar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATE 2: Invitation -->
+  <section id="invitation-screen" class="screen hidden-screen">
+    <div class="w-full max-w-md mx-auto text-center">
+      <h1 class="font-lora text-xl sm:text-2xl md:text-3xl text-blush-500 font-medium leading-snug mb-6 px-2">
+        Estás cordialmente invitada a una cita
+      </h1>
+
+      <div class="photo-frame mb-6">
+        <img
+          id="park-photo"
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Parque_Bicentenario_2017_looking_south.jpg/960px-Parque_Bicentenario_2017_looking_south.jpg"
+          srcset="
+            https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Parque_Bicentenario_2017_looking_south.jpg/480px-Parque_Bicentenario_2017_looking_south.jpg 480w,
+            https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Parque_Bicentenario_2017_looking_south.jpg/800px-Parque_Bicentenario_2017_looking_south.jpg 800w,
+            https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Parque_Bicentenario_2017_looking_south.jpg/1280px-Parque_Bicentenario_2017_looking_south.jpg 1280w
+          "
+          sizes="(max-width: 640px) 92vw, 448px"
+          alt="Parque Bicentenario, Quito"
+          loading="eager"
+          decoding="async"
+        >
+      </div>
+
+      <div class="bg-white/60 backdrop-blur-sm rounded-2xl px-5 py-4 mb-8 text-left shadow-sm border border-blush-200/50">
+        <div class="detail-item">
+          <span class="detail-icon">📍</span>
+          <div>
+            <span class="text-xs text-blush-400 uppercase tracking-wider font-medium">Ubicación</span>
+            <p class="font-montserrat text-gray-700 text-sm sm:text-base font-medium">Parque Bicentenario</p>
+          </div>
+        </div>
+        <div class="border-t border-blush-100"></div>
+        <div class="detail-item">
+          <span class="detail-icon">⏰</span>
+          <div>
+            <span class="text-xs text-blush-400 uppercase tracking-wider font-medium">Hora</span>
+            <p class="font-montserrat text-gray-700 text-sm sm:text-base font-medium">11:30 AM</p>
+          </div>
+        </div>
+        <div class="border-t border-blush-100"></div>
+        <div class="detail-item">
+          <span class="detail-icon">📅</span>
+          <div>
+            <span class="text-xs text-blush-400 uppercase tracking-wider font-medium">Fecha</span>
+            <p class="font-montserrat text-gray-700 text-sm sm:text-base font-medium">Jueves 18 de junio del 2026</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="buttons-container" class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+        <button id="btn-acepto" class="btn-soft w-full sm:w-auto" type="button">
+          Acepto
+        </button>
+        <button id="btn-no-acepto" class="btn-outline w-full sm:w-auto" type="button">
+          No acepto
+        </button>
+      </div>
+
+      <p id="decline-hint" class="hidden mt-4 text-sm text-blush-400 font-lora italic"></p>
+    </div>
+  </section>
+
+  <!-- STATE 3: Success -->
+  <section id="success-screen" class="screen hidden-screen">
+    <div class="text-center max-w-md mx-auto success-message">
+      <p class="font-lora text-3xl sm:text-4xl text-blush-500 font-medium">
+        ¡Yeeeeei! Te veo allá
+      </p>
+      <div class="mt-6 text-4xl">🌷</div>
+    </div>
+  </section>
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <script>
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const invitationScreen = document.getElementById('invitation-screen');
+    const successScreen = document.getElementById('success-screen');
+    const btnContinuar = document.getElementById('btn-continuar');
+    const btnAcepto = document.getElementById('btn-acepto');
+    const btnNoAcepto = document.getElementById('btn-no-acepto');
+    const declineHint = document.getElementById('decline-hint');
+    const buttonsContainer = document.getElementById('buttons-container');
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let confettiParticles = [];
+    let animationId = null;
+
+    // Fallback if Wikimedia path changes
+    document.getElementById('park-photo').addEventListener('error', function onImgError() {
+      this.removeEventListener('error', onImgError);
+      this.removeAttribute('srcset');
+      this.src = 'https://commons.wikimedia.org/wiki/Special:FilePath/Parque_Bicentenario_2017_looking_south.jpg?width=960';
+    });
+
+    // --- Screen transitions ---
+    btnContinuar.addEventListener('click', () => {
+      welcomeScreen.classList.add('fade-out');
+      setTimeout(() => {
+        welcomeScreen.classList.add('hidden-screen');
+        welcomeScreen.classList.remove('fade-out');
+        invitationScreen.classList.remove('hidden-screen');
+        invitationScreen.classList.add('fade-in');
+      }, 800);
+    });
+
+    btnNoAcepto.addEventListener('click', () => {
+      buttonsContainer.classList.add('shake');
+      declineHint.textContent = 'Piénsalo un poquito más… tus ojos lo valen 💕';
+      declineHint.classList.remove('hidden');
+      setTimeout(() => buttonsContainer.classList.remove('shake'), 500);
+    });
+
+    btnAcepto.addEventListener('click', () => {
+      btnAcepto.disabled = true;
+      btnNoAcepto.disabled = true;
+      launchTulipConfetti(() => {
+        invitationScreen.classList.add('fade-out');
+        setTimeout(() => {
+          invitationScreen.classList.add('hidden-screen');
+          invitationScreen.classList.remove('fade-out');
+          successScreen.classList.remove('hidden-screen');
+          successScreen.classList.add('fade-in');
+        }, 600);
+      });
+    });
+
+    // --- Tulip confetti ---
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const tulipColors = ['#f9b8cc', '#f093b0', '#e07a9a', '#ffd6e3', '#ffe8ee', '#f5a0b8'];
+
+    function createTulipParticle(x, y) {
+      return {
+        x,
+        y,
+        size: Math.random() * 14 + 10,
+        color: tulipColors[Math.floor(Math.random() * tulipColors.length)],
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 3 + 2,
+        opacity: 1,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: Math.random() * 0.1 + 0.05,
+        type: Math.random() > 0.3 ? 'tulip' : 'petal',
+      };
+    }
+
+    function drawTulip(p) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.globalAlpha = p.opacity;
+
+      if (p.type === 'tulip') {
+        // Tulip flower shape
+        ctx.beginPath();
+        ctx.moveTo(0, -p.size * 0.5);
+        ctx.bezierCurveTo(-p.size * 0.6, -p.size * 0.3, -p.size * 0.5, p.size * 0.4, 0, p.size * 0.5);
+        ctx.bezierCurveTo(p.size * 0.5, p.size * 0.4, p.size * 0.6, -p.size * 0.3, 0, -p.size * 0.5);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+
+        // Stem
+        ctx.beginPath();
+        ctx.moveTo(0, p.size * 0.5);
+        ctx.lineTo(0, p.size * 1.2);
+        ctx.strokeStyle = '#7cb87c';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        // Falling petal
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size * 0.4, p.size * 0.25, 0, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function launchTulipConfetti(onComplete) {
+      resizeCanvas();
+      confettiParticles = [];
+
+      const count = window.innerWidth < 640 ? 60 : 100;
+      for (let i = 0; i < count; i++) {
+        confettiParticles.push(
+          createTulipParticle(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height * -0.5 - 20
+          )
+        );
+      }
+
+      let frame = 0;
+      const maxFrames = 180;
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        frame++;
+
+        confettiParticles.forEach((p) => {
+          p.wobble += p.wobbleSpeed;
+          p.x += p.vx + Math.sin(p.wobble) * 0.8;
+          p.y += p.vy;
+          p.rotation += p.rotationSpeed;
+          p.vy += 0.04;
+
+          if (frame > maxFrames - 40) {
+            p.opacity = Math.max(0, p.opacity - 0.025);
+          }
+
+          drawTulip(p);
+        });
+
+        if (frame < maxFrames) {
+          animationId = requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          confettiParticles = [];
+          if (onComplete) onComplete();
+        }
+      }
+
+      if (animationId) cancelAnimationFrame(animationId);
+      animate();
+    }
+  </script>
+</body>
+</html>
