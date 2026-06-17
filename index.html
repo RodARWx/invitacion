@@ -87,7 +87,8 @@
       display: none;
     }
 
-    #carousel-screen:not(.hidden-screen) {
+    #carousel-screen:not(.hidden-screen),
+    #invitation-screen:not(.hidden-screen) {
       z-index: 105;
     }
 
@@ -119,16 +120,41 @@
       letter-spacing: 0.03em;
       cursor: pointer;
       box-shadow: 0 4px 20px rgba(224, 122, 154, 0.25);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.35s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-soft::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.45) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
 
     .btn-soft:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 28px rgba(224, 122, 154, 0.35);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 8px 32px rgba(224, 122, 154, 0.4);
     }
 
     .btn-soft:active {
-      transform: translateY(0);
+      transform: translateY(0) scale(0.96);
+    }
+
+    .btn-soft.btn-animate {
+      animation: btnPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .btn-soft.btn-animate::after {
+      opacity: 1;
+    }
+
+    @keyframes btnPop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.08); box-shadow: 0 10px 36px rgba(224, 122, 154, 0.45); }
+      100% { transform: scale(1); }
     }
 
     .btn-outline {
@@ -141,12 +167,23 @@
       font-weight: 500;
       font-size: 0.95rem;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.35s ease;
     }
 
     .btn-outline:hover {
       background: rgba(249, 184, 204, 0.15);
       border-color: #f093b0;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline.btn-animate {
+      animation: btnWiggle 0.6s ease;
+    }
+
+    @keyframes btnWiggle {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-2deg) scale(1.04); }
+      75% { transform: rotate(2deg) scale(1.04); }
     }
 
     /* Photo frame */
@@ -266,22 +303,43 @@
       width: min(92vw, 420px);
       aspect-ratio: 4 / 5;
       border-radius: 1.25rem;
-      overflow: hidden;
+      overflow: visible;
       box-shadow: 0 12px 40px rgba(224, 122, 154, 0.22);
-      background: rgba(255, 245, 247, 0.6);
+      background: transparent;
+      border: none;
+    }
+
+    .carousel-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 1.25rem;
+      overflow: hidden;
       border: 3px solid #f9b8cc;
+      background: rgba(255, 245, 247, 0.6);
     }
 
     .carousel-slide {
       position: absolute;
       inset: 0;
       opacity: 0;
-      transition: opacity 1s ease;
+      transform: scale(1.04);
+      transition: opacity 1s ease, transform 1.2s ease;
       pointer-events: none;
+      z-index: 1;
     }
 
     .carousel-slide.active {
       opacity: 1;
+      transform: scale(1);
+      z-index: 3;
+    }
+
+    .carousel-slide.peek {
+      opacity: 0.28;
+      transform: scale(0.97) translateX(4%);
+      z-index: 2;
+      filter: blur(0.3px);
     }
 
     .carousel-slide img {
@@ -296,6 +354,25 @@
       font-size: 0.8rem;
       color: #c96b8a;
       letter-spacing: 0.08em;
+      position: relative;
+      z-index: 110;
+    }
+
+    .btn-carousel-next {
+      margin-top: 1.25rem;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+    }
+
+    .btn-carousel-next.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .invitation-content {
       position: relative;
       z-index: 110;
     }
@@ -316,11 +393,11 @@
       opacity: 1;
     }
 
-    #flower-rain-canvas.rain-success {
-      z-index: 125;
+    #flower-rain-canvas.rain-overlay {
+      z-index: 205;
     }
 
-    /* Success — solo mensaje */
+    /* Success */
     .success-only {
       position: fixed;
       inset: 0;
@@ -328,22 +405,45 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(160deg, #fff5f7 0%, #fae8ef 40%, #f5d5e2 100%);
+      background: transparent;
+      pointer-events: none;
     }
 
     .success-only.hidden-screen {
       display: none;
     }
 
-    .success-only p {
+    .success-content {
       position: relative;
-      z-index: 130;
+      z-index: 220;
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    .success-content h2 {
       font-family: 'Lora', serif;
       font-size: clamp(2.5rem, 10vw, 4.5rem);
       font-weight: 600;
       color: #e07a9a;
-      text-align: center;
+      margin: 0;
       animation: successPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      text-shadow: 0 2px 24px rgba(224, 122, 154, 0.25);
+    }
+
+    .success-subtitle {
+      margin-top: 0.75rem;
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+      font-weight: 400;
+      color: #c96b8a;
+      opacity: 0;
+      animation: fadeInSub 1s ease 0.5s forwards;
+    }
+
+    @keyframes fadeInSub {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 0.85; transform: translateY(0); }
     }
   </style>
 </head>
@@ -408,15 +508,18 @@
   <section id="carousel-screen" class="screen hidden-screen">
     <div class="carousel-stage text-center">
       <div id="carousel-frame" class="carousel-frame mx-auto" aria-live="polite">
-        <!-- Slides generados por JS -->
+        <div class="carousel-inner" id="carousel-inner"></div>
       </div>
       <p id="carousel-counter" class="carousel-counter font-montserrat"></p>
+      <button id="btn-carousel-continuar" class="btn-soft btn-carousel-next" type="button">
+        Continuar
+      </button>
     </div>
   </section>
 
   <!-- STATE 3: Invitation -->
   <section id="invitation-screen" class="screen hidden-screen">
-    <div class="w-full max-w-md mx-auto text-center">
+    <div class="invitation-content w-full max-w-md mx-auto text-center">
       <h1 class="font-lora text-xl sm:text-2xl md:text-3xl text-blush-500 font-medium leading-snug mb-6 px-2">
         Estás cordialmente invitada a una cita
       </h1>
@@ -478,7 +581,10 @@
 
   <!-- STATE 4: Success (solo ¡Yeeeeei!) -->
   <section id="success-screen" class="success-only hidden-screen" aria-live="assertive">
-    <p>¡Yeeeeei!</p>
+    <div class="success-content">
+      <h2>¡Yeeeeei!</h2>
+      <p class="success-subtitle">Te veo allá</p>
+    </div>
   </section>
 
   <canvas id="flower-rain-canvas" aria-hidden="true"></canvas>
@@ -505,7 +611,9 @@
     const btnEmpezar = document.getElementById('btn-empezar');
     const volumeNotice = document.getElementById('volume-notice');
     const carouselFrame = document.getElementById('carousel-frame');
+    const carouselInner = document.getElementById('carousel-inner');
     const carouselCounter = document.getElementById('carousel-counter');
+    const btnCarouselContinuar = document.getElementById('btn-carousel-continuar');
     const btnAcepto = document.getElementById('btn-acepto');
     const btnNoAcepto = document.getElementById('btn-no-acepto');
     const declineHint = document.getElementById('decline-hint');
@@ -521,6 +629,21 @@
     let carouselTimer = null;
     let flowerRainActive = false;
     let rainMode = 'carousel';
+    let carouselCurrent = 0;
+    let carouselSlides = [];
+
+    function animateButton(btn, className = 'btn-animate') {
+      btn.classList.remove(className);
+      void btn.offsetWidth;
+      btn.classList.add(className);
+      setTimeout(() => btn.classList.remove(className), 650);
+    }
+
+    function goToInvitation() {
+      if (carouselTimer) clearTimeout(carouselTimer);
+      switchScreen(carouselScreen, invitationScreen);
+      setRainMode('invitation');
+    }
 
     // Fallback if Wikimedia path changes
     document.getElementById('park-photo').addEventListener('error', function onImgError() {
@@ -546,18 +669,19 @@
       }, 800);
     }
 
-    // ── Carrusel ──
+    // ── Carrusel infinito con preview ──
     function buildCarouselSlides() {
-      carouselFrame.innerHTML = '';
+      carouselInner.innerHTML = '';
       CAROUSEL_IMAGES.forEach((src, index) => {
         const slide = document.createElement('div');
-        slide.className = 'carousel-slide' + (index === 0 ? ' active' : '');
+        slide.className = 'carousel-slide';
+        slide.dataset.index = String(index);
         const img = document.createElement('img');
         img.src = src;
         img.alt = `Foto ${index + 1}`;
         img.loading = 'eager';
         img.onerror = () => {
-          const altExts = ['.jpeg', '.png', '.webp'];
+          const altExts = ['.jpg', '.png', '.webp'];
           const base = src.replace(/\.(jpg|jpeg|png|webp)$/i, '');
           const tryIdx = Number(img.dataset.try || 0);
           if (tryIdx < altExts.length) {
@@ -566,58 +690,62 @@
           }
         };
         slide.appendChild(img);
-        carouselFrame.appendChild(slide);
+        carouselInner.appendChild(slide);
       });
+      carouselSlides = carouselInner.querySelectorAll('.carousel-slide');
     }
 
-    function startCarousel(onComplete) {
+    function updateCarouselView() {
+      const total = carouselSlides.length;
+      const nextIdx = (carouselCurrent + 1) % total;
+
+      carouselSlides.forEach((slide, i) => {
+        slide.classList.remove('active', 'peek');
+        if (i === carouselCurrent) slide.classList.add('active');
+        else if (i === nextIdx) slide.classList.add('peek');
+      });
+
+      carouselCounter.textContent = `${carouselCurrent + 1} / ${total}`;
+    }
+
+    function startCarousel() {
       buildCarouselSlides();
-      const slides = carouselFrame.querySelectorAll('.carousel-slide');
-      let current = 0;
+      carouselCurrent = 0;
+      updateCarouselView();
+      btnCarouselContinuar.classList.remove('visible');
 
-      function updateCounter() {
-        carouselCounter.textContent = `${current + 1} / ${slides.length}`;
+      setTimeout(() => {
+        btnCarouselContinuar.classList.add('visible');
+      }, SLIDE_DURATION_MS * 2);
+
+      function advanceSlide() {
+        carouselCurrent = (carouselCurrent + 1) % carouselSlides.length;
+        updateCarouselView();
+        carouselTimer = setTimeout(advanceSlide, SLIDE_DURATION_MS);
       }
 
-      function goToNext() {
-        const prev = slides[current];
-        current += 1;
-
-        if (current >= slides.length) {
-          carouselCounter.textContent = '';
-          if (onComplete) onComplete();
-          return;
-        }
-
-        const next = slides[current];
-        next.classList.add('active');
-        prev.classList.remove('active');
-        updateCounter();
-        carouselTimer = setTimeout(goToNext, SLIDE_DURATION_MS);
-      }
-
-      updateCounter();
-      carouselTimer = setTimeout(goToNext, SLIDE_DURATION_MS);
+      carouselTimer = setTimeout(advanceSlide, SLIDE_DURATION_MS);
     }
+
+    btnCarouselContinuar.addEventListener('click', () => {
+      animateButton(btnCarouselContinuar);
+      goToInvitation();
+    });
 
     // ── Empezar: audio + carrusel ──
     btnEmpezar.addEventListener('click', () => {
+      animateButton(btnEmpezar);
       btnEmpezar.disabled = true;
       bgAudio.currentTime = 0;
-      bgAudio.play().catch(() => {
-        /* El navegador puede bloquear audio sin interacción previa; el clic ya la desbloquea */
-      });
+      bgAudio.play().catch(() => {});
 
       switchScreen(welcomeScreen, carouselScreen);
-      startFlowerRain('carousel');
-      startCarousel(() => {
-        if (carouselTimer) clearTimeout(carouselTimer);
-        stopFlowerRain();
-        switchScreen(carouselScreen, invitationScreen);
-      });
+      setRainMode('carousel');
+      startCarousel();
     });
 
     btnNoAcepto.addEventListener('click', () => {
+      animateButton(btnNoAcepto, 'btn-animate');
       buttonsContainer.classList.add('shake');
       declineHint.textContent = 'Piénsalo un poquito más… tus ojos lo valen 💕';
       declineHint.classList.remove('hidden');
@@ -625,6 +753,7 @@
     });
 
     btnAcepto.addEventListener('click', () => {
+      animateButton(btnAcepto);
       btnAcepto.disabled = true;
       btnNoAcepto.disabled = true;
 
@@ -633,7 +762,7 @@
       invitationScreen.classList.add('hidden-screen');
 
       successScreen.classList.remove('hidden-screen');
-      startFlowerRain('success');
+      setRainMode('success');
     });
 
     // ── Lluvia infinita de flores ──
@@ -657,14 +786,26 @@
           spawnBurst: 2,
           opacityMin: 0.45,
           opacityMax: 0.85,
+          sideBias: true,
+        };
+      }
+      if (mode === 'invitation') {
+        return {
+          maxParticles: mobile ? 60 : 95,
+          spawnEvery: 4,
+          spawnBurst: 2,
+          opacityMin: 0.5,
+          opacityMax: 0.9,
+          sideBias: false,
         };
       }
       return {
-        maxParticles: mobile ? 70 : 110,
-        spawnEvery: 4,
-        spawnBurst: 2,
+        maxParticles: mobile ? 80 : 120,
+        spawnEvery: 3,
+        spawnBurst: 3,
         opacityMin: 0.65,
         opacityMax: 1,
+        sideBias: false,
       };
     }
 
@@ -683,7 +824,7 @@
       const h = canvas.height;
       let x;
 
-      if (rainMode === 'carousel') {
+      if (rainMode === 'carousel' && rainSettings.sideBias) {
         const margin = w * 0.08;
         const centerStart = w * 0.22;
         const centerEnd = w * 0.78;
@@ -794,9 +935,18 @@
       }
     }
 
+    function setRainMode(mode) {
+      rainMode = mode;
+      rainSettings = getRainSettings(mode);
+      canvas.classList.toggle('rain-overlay', mode === 'success');
+      if (!flowerRainActive) {
+        startFlowerRain();
+      }
+    }
+
     function stopFlowerRain() {
       flowerRainActive = false;
-      canvas.classList.remove('rain-active', 'rain-success');
+      canvas.classList.remove('rain-active', 'rain-overlay');
       if (animationId) {
         cancelAnimationFrame(animationId);
         animationId = null;
@@ -805,17 +955,16 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    function startFlowerRain(mode = 'success') {
-      rainMode = mode;
-      rainSettings = getRainSettings(mode);
-      flowerRainActive = true;
+    function startFlowerRain() {
+      if (flowerRainActive) return;
 
-      canvas.classList.toggle('rain-success', mode === 'success');
+      flowerRainActive = true;
       canvas.classList.add('rain-active');
 
       resizeCanvas();
-      confettiParticles = [];
-      spawnFlowers(rainSettings.maxParticles);
+      if (confettiParticles.length === 0) {
+        spawnFlowers(rainSettings.maxParticles);
+      }
 
       let frame = 0;
 
