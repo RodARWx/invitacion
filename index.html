@@ -87,6 +87,10 @@
       display: none;
     }
 
+    #carousel-screen:not(.hidden-screen) {
+      z-index: 105;
+    }
+
     .screen.fade-out {
       opacity: 0;
       transform: translateY(-20px);
@@ -173,16 +177,7 @@
       }
     }
 
-    /* Confetti canvas */
-    #confetti-canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
-
+    /* Confetti canvas — legacy removed */
     /* Success message */
     .success-message {
       animation: successPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -260,7 +255,12 @@
       box-shadow: none;
     }
 
-    /* Carousel */
+    /* Carrusel */
+    .carousel-stage {
+      position: relative;
+      z-index: 110;
+    }
+
     .carousel-frame {
       position: relative;
       width: min(92vw, 420px);
@@ -296,6 +296,28 @@
       font-size: 0.8rem;
       color: #c96b8a;
       letter-spacing: 0.08em;
+      position: relative;
+      z-index: 110;
+    }
+
+    /* Lluvia de flores — pantalla completa */
+    #flower-rain-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    #flower-rain-canvas.rain-active {
+      opacity: 1;
+    }
+
+    #flower-rain-canvas.rain-success {
+      z-index: 125;
     }
 
     /* Success — solo mensaje */
@@ -315,7 +337,7 @@
 
     .success-only p {
       position: relative;
-      z-index: 2;
+      z-index: 130;
       font-family: 'Lora', serif;
       font-size: clamp(2.5rem, 10vw, 4.5rem);
       font-weight: 600;
@@ -384,7 +406,7 @@
 
   <!-- STATE 2: Carrusel de fotos -->
   <section id="carousel-screen" class="screen hidden-screen">
-    <div class="text-center">
+    <div class="carousel-stage text-center">
       <div id="carousel-frame" class="carousel-frame mx-auto" aria-live="polite">
         <!-- Slides generados por JS -->
       </div>
@@ -456,10 +478,10 @@
 
   <!-- STATE 4: Success (solo ¡Yeeeeei!) -->
   <section id="success-screen" class="success-only hidden-screen" aria-live="assertive">
-    <canvas id="confetti-canvas"></canvas>
     <p>¡Yeeeeei!</p>
   </section>
 
+  <canvas id="flower-rain-canvas" aria-hidden="true"></canvas>
   <audio id="bg-audio" src="./audio/cancion.mp3" preload="auto"></audio>
 
   <script>
@@ -489,7 +511,7 @@
     const declineHint = document.getElementById('decline-hint');
     const buttonsContainer = document.getElementById('buttons-container');
     const bgAudio = document.getElementById('bg-audio');
-    const canvas = document.getElementById('confetti-canvas');
+    const canvas = document.getElementById('flower-rain-canvas');
     const ctx = canvas.getContext('2d');
 
     bgAudio.src = AUDIO_SRC;
@@ -498,6 +520,7 @@
     let animationId = null;
     let carouselTimer = null;
     let flowerRainActive = false;
+    let rainMode = 'carousel';
 
     // Fallback if Wikimedia path changes
     document.getElementById('park-photo').addEventListener('error', function onImgError() {
@@ -586,8 +609,10 @@
       });
 
       switchScreen(welcomeScreen, carouselScreen);
+      startFlowerRain('carousel');
       startCarousel(() => {
         if (carouselTimer) clearTimeout(carouselTimer);
+        stopFlowerRain();
         switchScreen(carouselScreen, invitationScreen);
       });
     });
@@ -608,14 +633,13 @@
       invitationScreen.classList.add('hidden-screen');
 
       successScreen.classList.remove('hidden-screen');
-      startFlowerRain();
+      startFlowerRain('success');
     });
 
     // ── Lluvia infinita de flores ──
     function resizeCanvas() {
-      const rect = successScreen.getBoundingClientRect();
-      canvas.width = rect.width || window.innerWidth;
-      canvas.height = rect.height || window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     }
 
     window.addEventListener('resize', () => {
@@ -623,8 +647,28 @@
     });
 
     const flowerColors = ['#f9b8cc', '#f093b0', '#e07a9a', '#ffd6e3', '#ffe8ee', '#f5a0b8', '#ffc0d4'];
-    const MAX_PARTICLES = window.innerWidth < 640 ? 70 : 110;
-    const SPAWN_EVERY_FRAMES = 4;
+
+    function getRainSettings(mode) {
+      const mobile = window.innerWidth < 640;
+      if (mode === 'carousel') {
+        return {
+          maxParticles: mobile ? 55 : 85,
+          spawnEvery: 5,
+          spawnBurst: 2,
+          opacityMin: 0.45,
+          opacityMax: 0.85,
+        };
+      }
+      return {
+        maxParticles: mobile ? 70 : 110,
+        spawnEvery: 4,
+        spawnBurst: 2,
+        opacityMin: 0.65,
+        opacityMax: 1,
+      };
+    }
+
+    let rainSettings = getRainSettings('carousel');
 
     function randomType() {
       const r = Math.random();
@@ -635,17 +679,39 @@
     }
 
     function createFlowerParticle() {
+      const w = canvas.width;
+      const h = canvas.height;
+      let x;
+
+      if (rainMode === 'carousel') {
+        const margin = w * 0.08;
+        const centerStart = w * 0.22;
+        const centerEnd = w * 0.78;
+        if (Math.random() < 0.72) {
+          x = Math.random() < 0.5
+            ? margin + Math.random() * (centerStart - margin)
+            : centerEnd + Math.random() * (w - margin - centerEnd);
+        } else {
+          x = centerStart + Math.random() * (centerEnd - centerStart);
+        }
+      } else {
+        x = Math.random() * w;
+      }
+
       const size = Math.random() * 16 + 8;
+      const baseOpacity = rainSettings.opacityMin +
+        Math.random() * (rainSettings.opacityMax - rainSettings.opacityMin);
+
       return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * -canvas.height * 0.3 - size,
+        x,
+        y: Math.random() * -h * 0.4 - size,
         size,
         color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
         rotation: Math.random() * 360,
         rotationSpeed: (Math.random() - 0.5) * 3,
         vx: (Math.random() - 0.5) * 1.2,
         vy: Math.random() * 1.4 + 1.2,
-        opacity: Math.random() * 0.35 + 0.65,
+        opacity: baseOpacity,
         wobble: Math.random() * Math.PI * 2,
         wobbleSpeed: Math.random() * 0.04 + 0.02,
         sway: Math.random() * 1.5 + 0.5,
@@ -722,17 +788,34 @@
 
     function spawnFlowers(count) {
       for (let i = 0; i < count; i++) {
-        if (confettiParticles.length < MAX_PARTICLES) {
+        if (confettiParticles.length < rainSettings.maxParticles) {
           confettiParticles.push(createFlowerParticle());
         }
       }
     }
 
-    function startFlowerRain() {
+    function stopFlowerRain() {
+      flowerRainActive = false;
+      canvas.classList.remove('rain-active', 'rain-success');
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      confettiParticles = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function startFlowerRain(mode = 'success') {
+      rainMode = mode;
+      rainSettings = getRainSettings(mode);
       flowerRainActive = true;
+
+      canvas.classList.toggle('rain-success', mode === 'success');
+      canvas.classList.add('rain-active');
+
       resizeCanvas();
       confettiParticles = [];
-      spawnFlowers(MAX_PARTICLES);
+      spawnFlowers(rainSettings.maxParticles);
 
       let frame = 0;
 
@@ -742,8 +825,8 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         frame++;
 
-        if (frame % SPAWN_EVERY_FRAMES === 0) {
-          spawnFlowers(2);
+        if (frame % rainSettings.spawnEvery === 0) {
+          spawnFlowers(rainSettings.spawnBurst);
         }
 
         confettiParticles.forEach((p) => {
@@ -755,7 +838,6 @@
         });
 
         confettiParticles = confettiParticles.filter((p) => p.y < canvas.height + p.size * 2);
-
         confettiParticles.forEach(drawFlower);
 
         animationId = requestAnimationFrame(animate);
