@@ -175,9 +175,11 @@
 
     /* Confetti canvas */
     #confetti-canvas {
-      position: fixed;
+      position: absolute;
       inset: 0;
-      z-index: 100;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
       pointer-events: none;
     }
 
@@ -225,6 +227,102 @@
       width: 1.75rem;
       text-align: center;
     }
+
+    /* Volume notice */
+    .volume-notice {
+      margin-top: 1.5rem;
+      padding: 0.65rem 1.25rem;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(249, 184, 204, 0.45);
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      color: #b87a90;
+      line-height: 1.5;
+      animation: noticePulse 2.5s ease-in-out infinite;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .volume-notice.hidden-notice {
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none;
+    }
+
+    @keyframes noticePulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(249, 184, 204, 0); }
+      50% { box-shadow: 0 0 18px rgba(249, 184, 204, 0.35); }
+    }
+
+    .btn-soft:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Carousel */
+    .carousel-frame {
+      position: relative;
+      width: min(92vw, 420px);
+      aspect-ratio: 4 / 5;
+      border-radius: 1.25rem;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(224, 122, 154, 0.22);
+      background: rgba(255, 245, 247, 0.6);
+      border: 3px solid #f9b8cc;
+    }
+
+    .carousel-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    .carousel-slide.active {
+      opacity: 1;
+    }
+
+    .carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .carousel-counter {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: #c96b8a;
+      letter-spacing: 0.08em;
+    }
+
+    /* Success — solo mensaje */
+    .success-only {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #fff5f7 0%, #fae8ef 40%, #f5d5e2 100%);
+    }
+
+    .success-only.hidden-screen {
+      display: none;
+    }
+
+    .success-only p {
+      position: relative;
+      z-index: 2;
+      font-family: 'Lora', serif;
+      font-size: clamp(2.5rem, 10vw, 4.5rem);
+      font-weight: 600;
+      color: #e07a9a;
+      text-align: center;
+      animation: successPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
   </style>
 </head>
 <body>
@@ -271,17 +369,30 @@
   <section id="welcome-screen" class="screen">
     <div class="text-center max-w-lg mx-auto">
       <p class="font-lora text-2xl sm:text-3xl md:text-4xl text-blush-500 italic leading-relaxed quote-glow px-2">
-        ¿Quién quisiera a otra teniendo tus ojos?
+        "¿Quién quisiera a otra teniendo tus ojos?"
       </p>
-      <div class="mt-10 sm:mt-12">
-        <button id="btn-continuar" class="btn-soft" type="button">
-          Continuar
+      <p id="volume-notice" class="volume-notice mx-auto max-w-sm">
+        Por favor, sube el volumen para una mejor experiencia
+      </p>
+      <div class="mt-8 sm:mt-10">
+        <button id="btn-empezar" class="btn-soft" type="button" disabled>
+          Empezar
         </button>
       </div>
     </div>
   </section>
 
-  <!-- STATE 2: Invitation -->
+  <!-- STATE 2: Carrusel de fotos -->
+  <section id="carousel-screen" class="screen hidden-screen">
+    <div class="text-center">
+      <div id="carousel-frame" class="carousel-frame mx-auto" aria-live="polite">
+        <!-- Slides generados por JS -->
+      </div>
+      <p id="carousel-counter" class="carousel-counter font-montserrat"></p>
+    </div>
+  </section>
+
+  <!-- STATE 3: Invitation -->
   <section id="invitation-screen" class="screen hidden-screen">
     <div class="w-full max-w-md mx-auto text-center">
       <h1 class="font-lora text-xl sm:text-2xl md:text-3xl text-blush-500 font-medium leading-snug mb-6 px-2">
@@ -343,32 +454,50 @@
     </div>
   </section>
 
-  <!-- STATE 3: Success -->
-  <section id="success-screen" class="screen hidden-screen">
-    <div class="text-center max-w-md mx-auto success-message">
-      <p class="font-lora text-3xl sm:text-4xl text-blush-500 font-medium">
-        ¡Yeeeeei! Te veo allá
-      </p>
-      <div class="mt-6 text-4xl">🌷</div>
-    </div>
+  <!-- STATE 4: Success (solo ¡Yeeeeei!) -->
+  <section id="success-screen" class="success-only hidden-screen" aria-live="assertive">
+    <canvas id="confetti-canvas"></canvas>
+    <p>¡Yeeeeei!</p>
   </section>
 
-  <canvas id="confetti-canvas"></canvas>
+  <audio id="bg-audio" src="./audio/cancion.mp3" preload="auto"></audio>
 
   <script>
+    // ── Rutas de medios (ajústalas si tus archivos tienen otro nombre) ──
+    const AUDIO_SRC = './audio/cancion.mp3';
+    const CAROUSEL_IMAGES = [
+      './imagenes/1.jpeg',
+      './imagenes/2.jpeg',
+      './imagenes/3.jpeg',
+      './imagenes/4.jpeg',
+      './imagenes/5.jpeg',
+    ];
+    const VOLUME_NOTICE_MS = 5000;
+    const SLIDE_DURATION_MS = 3500;
+    const FADE_DURATION_MS = 1000;
+
     const welcomeScreen = document.getElementById('welcome-screen');
+    const carouselScreen = document.getElementById('carousel-screen');
     const invitationScreen = document.getElementById('invitation-screen');
     const successScreen = document.getElementById('success-screen');
-    const btnContinuar = document.getElementById('btn-continuar');
+    const btnEmpezar = document.getElementById('btn-empezar');
+    const volumeNotice = document.getElementById('volume-notice');
+    const carouselFrame = document.getElementById('carousel-frame');
+    const carouselCounter = document.getElementById('carousel-counter');
     const btnAcepto = document.getElementById('btn-acepto');
     const btnNoAcepto = document.getElementById('btn-no-acepto');
     const declineHint = document.getElementById('decline-hint');
     const buttonsContainer = document.getElementById('buttons-container');
+    const bgAudio = document.getElementById('bg-audio');
     const canvas = document.getElementById('confetti-canvas');
     const ctx = canvas.getContext('2d');
 
+    bgAudio.src = AUDIO_SRC;
+
     let confettiParticles = [];
     let animationId = null;
+    let carouselTimer = null;
+    let flowerRainActive = false;
 
     // Fallback if Wikimedia path changes
     document.getElementById('park-photo').addEventListener('error', function onImgError() {
@@ -377,15 +506,90 @@
       this.src = 'https://commons.wikimedia.org/wiki/Special:FilePath/Parque_Bicentenario_2017_looking_south.jpg?width=960';
     });
 
-    // --- Screen transitions ---
-    btnContinuar.addEventListener('click', () => {
-      welcomeScreen.classList.add('fade-out');
+    // ── Temporizador de aviso de volumen (5 s) ──
+    setTimeout(() => {
+      volumeNotice.classList.add('hidden-notice');
+      btnEmpezar.disabled = false;
+    }, VOLUME_NOTICE_MS);
+
+    // ── Transición entre pantallas ──
+    function switchScreen(from, to) {
+      from.classList.add('fade-out');
       setTimeout(() => {
-        welcomeScreen.classList.add('hidden-screen');
-        welcomeScreen.classList.remove('fade-out');
-        invitationScreen.classList.remove('hidden-screen');
-        invitationScreen.classList.add('fade-in');
+        from.classList.add('hidden-screen');
+        from.classList.remove('fade-out');
+        to.classList.remove('hidden-screen');
+        to.classList.add('fade-in');
       }, 800);
+    }
+
+    // ── Carrusel ──
+    function buildCarouselSlides() {
+      carouselFrame.innerHTML = '';
+      CAROUSEL_IMAGES.forEach((src, index) => {
+        const slide = document.createElement('div');
+        slide.className = 'carousel-slide' + (index === 0 ? ' active' : '');
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = `Foto ${index + 1}`;
+        img.loading = 'eager';
+        img.onerror = () => {
+          const altExts = ['.jpeg', '.png', '.webp'];
+          const base = src.replace(/\.(jpg|jpeg|png|webp)$/i, '');
+          const tryIdx = Number(img.dataset.try || 0);
+          if (tryIdx < altExts.length) {
+            img.dataset.try = String(tryIdx + 1);
+            img.src = base + altExts[tryIdx];
+          }
+        };
+        slide.appendChild(img);
+        carouselFrame.appendChild(slide);
+      });
+    }
+
+    function startCarousel(onComplete) {
+      buildCarouselSlides();
+      const slides = carouselFrame.querySelectorAll('.carousel-slide');
+      let current = 0;
+
+      function updateCounter() {
+        carouselCounter.textContent = `${current + 1} / ${slides.length}`;
+      }
+
+      function goToNext() {
+        const prev = slides[current];
+        current += 1;
+
+        if (current >= slides.length) {
+          carouselCounter.textContent = '';
+          if (onComplete) onComplete();
+          return;
+        }
+
+        const next = slides[current];
+        next.classList.add('active');
+        prev.classList.remove('active');
+        updateCounter();
+        carouselTimer = setTimeout(goToNext, SLIDE_DURATION_MS);
+      }
+
+      updateCounter();
+      carouselTimer = setTimeout(goToNext, SLIDE_DURATION_MS);
+    }
+
+    // ── Empezar: audio + carrusel ──
+    btnEmpezar.addEventListener('click', () => {
+      btnEmpezar.disabled = true;
+      bgAudio.currentTime = 0;
+      bgAudio.play().catch(() => {
+        /* El navegador puede bloquear audio sin interacción previa; el clic ya la desbloquea */
+      });
+
+      switchScreen(welcomeScreen, carouselScreen);
+      startCarousel(() => {
+        if (carouselTimer) clearTimeout(carouselTimer);
+        switchScreen(carouselScreen, invitationScreen);
+      });
     });
 
     btnNoAcepto.addEventListener('click', () => {
@@ -398,70 +602,117 @@
     btnAcepto.addEventListener('click', () => {
       btnAcepto.disabled = true;
       btnNoAcepto.disabled = true;
-      launchTulipConfetti(() => {
-        invitationScreen.classList.add('fade-out');
-        setTimeout(() => {
-          invitationScreen.classList.add('hidden-screen');
-          invitationScreen.classList.remove('fade-out');
-          successScreen.classList.remove('hidden-screen');
-          successScreen.classList.add('fade-in');
-        }, 600);
-      });
+
+      welcomeScreen.classList.add('hidden-screen');
+      carouselScreen.classList.add('hidden-screen');
+      invitationScreen.classList.add('hidden-screen');
+
+      successScreen.classList.remove('hidden-screen');
+      startFlowerRain();
     });
 
-    // --- Tulip confetti ---
+    // ── Lluvia infinita de flores ──
     function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const rect = successScreen.getBoundingClientRect();
+      canvas.width = rect.width || window.innerWidth;
+      canvas.height = rect.height || window.innerHeight;
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
-    const tulipColors = ['#f9b8cc', '#f093b0', '#e07a9a', '#ffd6e3', '#ffe8ee', '#f5a0b8'];
+    window.addEventListener('resize', () => {
+      if (flowerRainActive) resizeCanvas();
+    });
 
-    function createTulipParticle(x, y) {
+    const flowerColors = ['#f9b8cc', '#f093b0', '#e07a9a', '#ffd6e3', '#ffe8ee', '#f5a0b8', '#ffc0d4'];
+    const MAX_PARTICLES = window.innerWidth < 640 ? 70 : 110;
+    const SPAWN_EVERY_FRAMES = 4;
+
+    function randomType() {
+      const r = Math.random();
+      if (r < 0.35) return 'tulip';
+      if (r < 0.6) return 'rose';
+      if (r < 0.85) return 'petal';
+      return 'blossom';
+    }
+
+    function createFlowerParticle() {
+      const size = Math.random() * 16 + 8;
       return {
-        x,
-        y,
-        size: Math.random() * 14 + 10,
-        color: tulipColors[Math.floor(Math.random() * tulipColors.length)],
+        x: Math.random() * canvas.width,
+        y: Math.random() * -canvas.height * 0.3 - size,
+        size,
+        color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
         rotation: Math.random() * 360,
-        rotationSpeed: (Math.random() - 0.5) * 8,
-        vx: (Math.random() - 0.5) * 4,
-        vy: Math.random() * 3 + 2,
-        opacity: 1,
+        rotationSpeed: (Math.random() - 0.5) * 3,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: Math.random() * 1.4 + 1.2,
+        opacity: Math.random() * 0.35 + 0.65,
         wobble: Math.random() * Math.PI * 2,
-        wobbleSpeed: Math.random() * 0.1 + 0.05,
-        type: Math.random() > 0.3 ? 'tulip' : 'petal',
+        wobbleSpeed: Math.random() * 0.04 + 0.02,
+        sway: Math.random() * 1.5 + 0.5,
+        type: randomType(),
       };
     }
 
-    function drawTulip(p) {
+    function drawRose(size, color) {
+      const petals = 8;
+      for (let i = 0; i < petals; i++) {
+        const angle = (i / petals) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.ellipse(0, -size * 0.45, size * 0.35, size * 0.5, 0, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.18, 0, Math.PI * 2);
+      ctx.fillStyle = '#e07a9a';
+      ctx.fill();
+    }
+
+    function drawTulipShape(size, color) {
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.55);
+      ctx.bezierCurveTo(-size * 0.55, -size * 0.25, -size * 0.45, size * 0.35, 0, size * 0.45);
+      ctx.bezierCurveTo(size * 0.45, size * 0.35, size * 0.55, -size * 0.25, 0, -size * 0.55);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, size * 0.45);
+      ctx.lineTo(0, size * 0.9);
+      ctx.strokeStyle = 'rgba(124, 184, 124, 0.7)';
+      ctx.lineWidth = Math.max(1, size * 0.06);
+      ctx.stroke();
+    }
+
+    function drawFlower(p) {
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate((p.rotation * Math.PI) / 180);
       ctx.globalAlpha = p.opacity;
 
       if (p.type === 'tulip') {
-        // Tulip flower shape
+        drawTulipShape(p.size, p.color);
+      } else if (p.type === 'rose') {
+        drawRose(p.size, p.color);
+      } else if (p.type === 'blossom') {
+        for (let i = 0; i < 5; i++) {
+          ctx.save();
+          ctx.rotate((i / 5) * Math.PI * 2);
+          ctx.beginPath();
+          ctx.ellipse(0, -p.size * 0.3, p.size * 0.22, p.size * 0.3, 0, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+          ctx.restore();
+        }
         ctx.beginPath();
-        ctx.moveTo(0, -p.size * 0.5);
-        ctx.bezierCurveTo(-p.size * 0.6, -p.size * 0.3, -p.size * 0.5, p.size * 0.4, 0, p.size * 0.5);
-        ctx.bezierCurveTo(p.size * 0.5, p.size * 0.4, p.size * 0.6, -p.size * 0.3, 0, -p.size * 0.5);
-        ctx.fillStyle = p.color;
+        ctx.arc(0, 0, p.size * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffd6e3';
         ctx.fill();
-
-        // Stem
-        ctx.beginPath();
-        ctx.moveTo(0, p.size * 0.5);
-        ctx.lineTo(0, p.size * 1.2);
-        ctx.strokeStyle = '#7cb87c';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
       } else {
-        // Falling petal
         ctx.beginPath();
-        ctx.ellipse(0, 0, p.size * 0.4, p.size * 0.25, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, p.size * 0.45, p.size * 0.28, p.rotation * 0.02, 0, Math.PI * 2);
         ctx.fillStyle = p.color;
         ctx.fill();
       }
@@ -469,48 +720,45 @@
       ctx.restore();
     }
 
-    function launchTulipConfetti(onComplete) {
+    function spawnFlowers(count) {
+      for (let i = 0; i < count; i++) {
+        if (confettiParticles.length < MAX_PARTICLES) {
+          confettiParticles.push(createFlowerParticle());
+        }
+      }
+    }
+
+    function startFlowerRain() {
+      flowerRainActive = true;
       resizeCanvas();
       confettiParticles = [];
-
-      const count = window.innerWidth < 640 ? 60 : 100;
-      for (let i = 0; i < count; i++) {
-        confettiParticles.push(
-          createTulipParticle(
-            Math.random() * canvas.width,
-            Math.random() * canvas.height * -0.5 - 20
-          )
-        );
-      }
+      spawnFlowers(MAX_PARTICLES);
 
       let frame = 0;
-      const maxFrames = 180;
 
       function animate() {
+        if (!flowerRainActive) return;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         frame++;
 
+        if (frame % SPAWN_EVERY_FRAMES === 0) {
+          spawnFlowers(2);
+        }
+
         confettiParticles.forEach((p) => {
           p.wobble += p.wobbleSpeed;
-          p.x += p.vx + Math.sin(p.wobble) * 0.8;
+          p.x += p.vx + Math.sin(p.wobble) * p.sway * 0.15;
           p.y += p.vy;
           p.rotation += p.rotationSpeed;
-          p.vy += 0.04;
-
-          if (frame > maxFrames - 40) {
-            p.opacity = Math.max(0, p.opacity - 0.025);
-          }
-
-          drawTulip(p);
+          p.vy += 0.008;
         });
 
-        if (frame < maxFrames) {
-          animationId = requestAnimationFrame(animate);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          confettiParticles = [];
-          if (onComplete) onComplete();
-        }
+        confettiParticles = confettiParticles.filter((p) => p.y < canvas.height + p.size * 2);
+
+        confettiParticles.forEach(drawFlower);
+
+        animationId = requestAnimationFrame(animate);
       }
 
       if (animationId) cancelAnimationFrame(animationId);
